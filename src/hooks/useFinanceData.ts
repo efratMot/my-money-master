@@ -109,6 +109,43 @@ export function useFinanceData() {
     }
   }, [isBackendAvailable, toast]);
 
+  const addBudget = useCallback(async (category: string, limit: number) => {
+    try {
+      if (isBackendAvailable) {
+        const newBudget = await api.createBudget({ category, limit });
+        setBudgets(prev => [...prev, newBudget]);
+      } else {
+        setBudgets(prev => [...prev, { category: category as any, limit, spent: 0 }]);
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to create budget', variant: 'destructive' });
+    }
+  }, [isBackendAvailable, toast]);
+
+  const updateBudget = useCallback(async (category: string, limit: number) => {
+    try {
+      if (isBackendAvailable) {
+        const updated = await api.updateBudget(category, { limit });
+        setBudgets(prev => prev.map(b => b.category === category ? updated : b));
+      } else {
+        setBudgets(prev => prev.map(b => b.category === category ? { ...b, limit } : b));
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update budget', variant: 'destructive' });
+    }
+  }, [isBackendAvailable, toast]);
+
+  const deleteBudget = useCallback(async (category: string) => {
+    try {
+      if (isBackendAvailable) {
+        await api.deleteBudget(category);
+      }
+      setBudgets(prev => prev.filter(b => b.category !== category));
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete budget', variant: 'destructive' });
+    }
+  }, [isBackendAvailable, toast]);
+
   const addGoal = useCallback(async (name: string, targetAmount: number) => {
     try {
       if (isBackendAvailable) {
@@ -156,6 +193,9 @@ export function useFinanceData() {
     netBalance,
     expensesByCategory,
     addTransaction,
+    addBudget,
+    updateBudget,
+    deleteBudget,
     addGoal,
     contributeToGoal,
     recentTransactions,
