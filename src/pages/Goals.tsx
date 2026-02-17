@@ -1,18 +1,54 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Plus, TrendingUp, Calendar } from 'lucide-react';
+import { Target, Plus, TrendingUp, Calendar, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 
 const Goals = () => {
-  const { savingsGoals, netBalance } = useFinanceData();
+  const { savingsGoals, addGoal, contributeToGoal } = useFinanceData();
+
+  // New goal form state
+  const [newGoalOpen, setNewGoalOpen] = useState(false);
+  const [goalName, setGoalName] = useState('');
+  const [goalTarget, setGoalTarget] = useState('');
+
+  // Contribute form state
+  const [contributeOpen, setContributeOpen] = useState<string | null>(null);
+  const [contributeAmount, setContributeAmount] = useState('');
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const totalTarget = savingsGoals.reduce((sum, g) => sum + g.targetAmount, 0);
   const totalSaved = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0);
-  const overallProgress = (totalSaved / totalTarget) * 100;
+  const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+
+  const handleCreateGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!goalName || !goalTarget) return;
+    await addGoal(goalName, parseFloat(goalTarget));
+    setGoalName('');
+    setGoalTarget('');
+    setNewGoalOpen(false);
+  };
+
+  const handleContribute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contributeOpen || !contributeAmount) return;
+    await contributeToGoal(contributeOpen, parseFloat(contributeAmount));
+    setContributeAmount('');
+    setContributeOpen(null);
+  };
 
   return (
     <main className="container py-8">
@@ -27,10 +63,49 @@ const Goals = () => {
           <h2 className="text-2xl font-bold tracking-tight">Savings Goals</h2>
           <p className="text-muted-foreground">Track progress toward your financial goals</p>
         </div>
-        <Button className="gap-2 gradient-primary glow-primary">
-          <Plus className="w-4 h-4" />
-          Add Goal
-        </Button>
+        <Dialog open={newGoalOpen} onOpenChange={setNewGoalOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2 gradient-primary glow-primary">
+              <Plus className="w-4 h-4" />
+              Add Goal
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md bg-card border-border">
+            <DialogHeader>
+              <DialogTitle>Create New Savings Goal</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateGoal} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="goal-name">Goal Name</Label>
+                <Input
+                  id="goal-name"
+                  placeholder="e.g. Emergency Fund"
+                  value={goalName}
+                  onChange={(e) => setGoalName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="goal-target">Target Amount</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="goal-target"
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    placeholder="10000"
+                    value={goalTarget}
+                    onChange={(e) => setGoalTarget(e.target.value)}
+                    className="pl-7 font-mono"
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full gradient-primary">
+                Create Goal
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </motion.div>
 
       {/* Overview Cards */}
@@ -120,9 +195,44 @@ const Goals = () => {
               </div>
 
               <div className="mt-4 pt-4 border-t border-border">
-                <Button variant="outline" size="sm" className="w-full">
-                  Add Contribution
-                </Button>
+                <Dialog open={contributeOpen === goal.id} onOpenChange={(open) => setContributeOpen(open ? goal.id : null)}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Add Contribution
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-sm bg-card border-border">
+                    <DialogHeader>
+                      <DialogTitle>Contribute to {goal.name}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleContribute} className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="contribute-amount">Amount</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="contribute-amount"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            max={remaining}
+                            placeholder="100.00"
+                            value={contributeAmount}
+                            onChange={(e) => setContributeAmount(e.target.value)}
+                            className="pl-7 font-mono"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Max: {formatCurrency(remaining)}
+                        </p>
+                      </div>
+                      <Button type="submit" className="w-full gradient-primary">
+                        Contribute
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
             </motion.div>
           );

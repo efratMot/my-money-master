@@ -1,0 +1,9 @@
+[
+  { "category": "food", "limit": 600, "spent": 420 },
+  { "category": "transportation", "limit": 300, "spent": 180 },
+  { "category": "housing", "limit": 1500, "spent": 1200 },
+  { "category": "entertainment", "limit": 200, "spent": 234 },
+  { "category": "utilities", "limit": 200, "spent": 78 },
+  { "category": "subscriptions", "limit": 100, "spent": 89 },
+  { "category": "shopping", "limit": 300, "spent": 0 }
+]
